@@ -39,7 +39,7 @@ def load_data_from_gsheets():
         return pd.DataFrame() 
 
 # 2. ESTRUTURA DO PAINEL
-st.title("💰 Painel de Preços Chevrolet")
+st.title("💰 Painel de Preço Chevrolet")
 
 # Carrega os dados
 df = load_data_from_gsheets()
