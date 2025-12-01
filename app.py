@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import json
+# oauth2client e json não são mais necessários com o método moderno do gspread.
 
 # --- Configurações da Planilha ---
 # Seu ID da planilha
@@ -15,17 +14,12 @@ WORKSHEET_NAME = 'Chevrolet Preços'
 @st.cache_data(ttl=600) 
 def load_data_from_gsheets():
     try:
-        # A. AUTENTICAÇÃO SEGURA USANDO STREAMLIT SECRETS
+        # A. AUTENTICAÇÃO MODERNA E SEGURA USANDO STREAMLIT SECRETS
         # st.secrets carrega as chaves do seu arquivo de configuração seguro (secrets.toml)
-        
-        # Certifique-se de que o nome da chave (gcp_service_account) corresponde ao seu secrets.toml
         creds_json = dict(st.secrets["gcp_service_account"])
         
-        scope = ['https://www.googleapis.com/auth/spreadsheets', 
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
+        # Método moderno: gspread se autentica diretamente com o dicionário de chaves
+        client = gspread.service_account_from_dict(creds_json)
 
         # B. ACESSO E LEITURA DA PLANILHA
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
@@ -36,10 +30,6 @@ def load_data_from_gsheets():
         headers = data[0]
         data_rows = data[1:]
         df = pd.DataFrame(data_rows, columns=headers)
-        
-        # O Streamlit armazena os dados em strings, precisamos convertê-los, se necessário
-        # Exemplo simples de limpeza/conversão:
-        # df['Preço'] = pd.to_numeric(df['Preço'].str.replace('R$', '').str.replace(',', '.'), errors='coerce')
         
         return df
 
@@ -58,15 +48,17 @@ if not df.empty:
     st.subheader(f"Dados Carregados da Aba: {WORKSHEET_NAME}")
     
     # 3. EXEMPLO DE VISUALIZAÇÃO
-    # Usaremos uma tabela simples como visualização inicial
-    st.dataframe(df.head(10)) 
+    # Removemos o .head(10) para mostrar todos os dados e definimos uma altura para rolar.
+    st.dataframe(df, height=600, use_container_width=True) 
     
     st.success(f"Dados carregados com sucesso. Total de {len(df)} linhas.")
 
-    # Se você quiser permitir que os usuários atualizem os dados manualmente, use:
+    # 4. BOTÃO DE ATUALIZAÇÃO CORRIGIDO
     if st.button("Puxar Dados Mais Recentes"):
+        # Limpa o cache para garantir que novos dados sejam buscados
         st.cache_data.clear()
-        st.experimental_rerun()
+        # CORREÇÃO CRÍTICA: st.rerun() é o comando moderno e funcional
+        st.rerun()
         
 else:
     st.warning("Não foi possível carregar os dados. Verifique as credenciais ou o compartilhamento da planilha.")
